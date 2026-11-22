@@ -1,0 +1,28 @@
+{
+  "name": "monaco-singlefile",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node build.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DeanRanford/monaco-singlefile.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/DeanRanford/monaco-singlefile/issues"
+  },
+  "homepage": "https://github.com/DeanRanford/monaco-singlefile#readme",
+  "dependencies": {
+    "monaco-editor": "^0.57.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
