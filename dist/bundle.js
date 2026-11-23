@@ -137100,4 +137100,3 @@ monaco-editor/esm/vs/languages/definitions/swift/swift.js:
    *  Copyright (C) David Owens II, owensd.io. All rights reserved.
    *--------------------------------------------------------------------------------------------*)
 */
-export default MonacoApp;
