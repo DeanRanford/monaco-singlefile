@@ -3,49 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monaco + Sandbox Runner</title>
+  <title>Simple Monaco + JS-Interpreter</title>
+  <link rel="stylesheet" href="./monaco.css" />
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #14161a;
-      color: #e6e8ec;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      font-family: system-ui, sans-serif;
+      background: #14161a;
+      color: #e6e8ec;
     }
 
-    header {
+    bar {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
+      padding: 8px 12px;
       background: #1d2026;
       border-bottom: 1px solid #2c313a;
     }
 
-    header h1 {
-      margin: 0;
-      font-size: 15px;
-      font-weight: 600;
-    }
-
-    .controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
     button {
-      padding: 6px 14px;
+      padding: 6px 16px;
       font-size: 13px;
       font-weight: 600;
-      border: 1px solid #3d63dd;
-      border-radius: 6px;
+      border: 0;
+      border-radius: 5px;
       background: #3d63dd;
       color: #fff;
       cursor: pointer;
@@ -55,97 +40,102 @@
       background: #4e73e8;
     }
 
-    button.secondary {
-      background: #282c35;
-      border-color: #3a404c;
-      color: #d0d4dc;
-    }
-
-    button.secondary:hover {
-      background: #323742;
-    }
-
-    .workspace {
-      display: grid;
-      grid-template-columns: 1fr 360px;
+    #editor {
       flex: 1;
       min-height: 0;
     }
 
-    /* Mount target for MonacoController */
-    #monaco-editor,
-    #editor-container {
-      width: 100%;
-      height: 100%;
-      min-height: 0;
-    }
-
-    .output-panel {
-      display: flex;
-      flex-direction: column;
-      border-left: 1px solid #2c313a;
-      background: #181a20;
-      min-height: 0;
-    }
-
-    .output-header {
-      padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: #9aa2b1;
-      border-bottom: 1px solid #2c313a;
-    }
-
-    #console-output {
-      flex: 1;
+    #output {
+      height: 150px;
       margin: 0;
-      padding: 12px;
+      padding: 10px 12px;
       overflow: auto;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: #181a20;
+      border-top: 1px solid #2c313a;
+      font-family: ui-monospace, monospace;
       font-size: 12.5px;
-      line-height: 1.5;
       white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .error-text {
-      color: #ff6b6b;
-    }
-
-    @media (max-width: 800px) {
-      .workspace {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 220px;
-      }
-
-      .output-panel {
-        border-left: none;
-        border-top: 1px solid #2c313a;
-      }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Standalone Script Editor</h1>
-    <div class="controls">
-      <button id="run-btn" type="button">Run Script</button>
-      <button id="clear-btn" class="secondary" type="button">Clear Output</button>
-    </div>
-  </header>
+  <bar>
+    <button id="run-btn" type="button">Run</button>
+  </bar>
 
-  <main class="workspace">
-    <!-- If MonacoController expects a specific container ID, pass it or match its selector -->
-    <div id="monaco-editor"></div>
+  <div id="editor"></div>
+  <pre id="output"></pre>
 
-    <aside class="output-panel">
-      <div class="output-header">Console Output</div>
-      <pre id="console-output"></pre>
-    </aside>
-  </main>
+  <script type="module">
+    import * as MonacoBundle from "./monaco.js";
+    import * as InterpreterModule from "./acorn_interpreter.js";
 
-  <script type="module" src="./index.js"></script>
+    const Interpreter =
+      InterpreterModule.Interpreter ??
+      InterpreterModule.default?.Interpreter ??
+      globalThis.Interpreter;
+
+    const bundle = MonacoBundle.default ?? MonacoBundle;
+    const editor = bundle.createEditor(document.getElementById("editor"), {
+      value: [
+        "// ES5-style JS runs in the sandbox",
+        "function add(a, b) {",
+        "  return a + b;",
+        "}",
+        'print("2 + 3 =", add(2, 3));',
+        'game.log("hello from game");',
+        "add(10, 20);",
+      ].join("\n"),
+      language: "javascript",
+      theme: "vs-dark",
+      automaticLayout: true,
+    });
+
+    const outputEl = document.getElementById("output");
+    const MAX_STEPS = 50000;
+
+    function runCode() {
+      const logs = [];
+
+      try {
+        const interpreter = new Interpreter(editor.getValue(), (interp, global) => {
+          interp.setProperty(
+            global,
+            "print",
+            interp.createNativeFunction((...args) => {
+              logs.push(args.join(" "));
+            })
+          );
+
+          const game = interp.nativeToPseudo({});
+          interp.setProperty(global, "game", game);
+          interp.setProperty(
+            game,
+            "log",
+            interp.createNativeFunction((msg) => {
+              logs.push(`[game] ${msg}`);
+            })
+          );
+        });
+
+        let steps = 0;
+        while (interpreter.step()) {
+          if (++steps >= MAX_STEPS) {
+            throw new Error(`Stopped after ${MAX_STEPS} steps (possible infinite loop).`);
+          }
+        }
+
+        const lines = [...logs];
+        if (interpreter.value !== undefined) {
+          lines.push(`=> ${interpreter.value}`);
+        }
+        outputEl.textContent = lines.join("\n");
+      } catch (err) {
+        outputEl.textContent = `Error: ${err.message ?? err}`;
+      }
+    }
+
+    document.getElementById("run-btn").addEventListener("click", runCode);
+  </script>
 </body>
 </html>
