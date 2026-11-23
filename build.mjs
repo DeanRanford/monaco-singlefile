@@ -27,39 +27,8 @@ for (const [key, entryPoint] of Object.entries(workerEntries)) {
     JSON.stringify(code);
 }
 
-// 3. Small plugin so Monaco's .css imports get injected into <head> inside the 1 JS file
-const injectCssPlugin = {
-  name: "inject-css",
-  setup(build) {
-    build.onLoad({ filter: /\.css$/ }, async (args) => {
-      const { text } = await esbuild.build({
-        entryPoints: [args.path],
-        bundle: true,
-        write: false,
-        minify: true,
-        loader: {
-          ".ttf": "dataurl",
-          ".woff": "dataurl",
-          ".woff2": "dataurl",
-          ".svg": "dataurl",
-        },
-      });
-      const cssString = JSON.stringify(text);
-      return {
-        contents: `
-          if (typeof document !== 'undefined') {
-            const style = document.createElement('style');
-            style.textContent = ${cssString};
-            document.head.appendChild(style);
-          }
-        `,
-        loader: "js",
-      };
-    });
-  },
-};
-
-// 4. Bundle main app + Monaco + inlined worker code into a single JS file
+// 3. Bundle main app + Monaco + inlined worker code into dist/bundle.js
+//    and automatically extract all imported CSS + data-URI fonts into dist/bundle.css
 await esbuild.build({
   entryPoints: ["src/index.js"],
   bundle: true,
@@ -68,8 +37,15 @@ await esbuild.build({
   globalName: "MonacoApp",
   platform: "browser",
   outfile: "dist/bundle.js",
-  plugins: [injectCssPlugin],
+  loader: {
+    ".ttf": "dataurl",
+    ".woff": "dataurl",
+    ".woff2": "dataurl",
+    ".svg": "dataurl",
+  },
   define: workerDefines,
 });
 
-console.log("Built dist/bundle.js with inlined Blob workers.");
+console.log(
+  "Built dist/bundle.js and dist/bundle.css with inlined Blob workers.",
+);
