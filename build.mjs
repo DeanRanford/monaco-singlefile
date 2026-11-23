@@ -36,7 +36,7 @@ await esbuild.build({
   format: "iife",
   globalName: "MonacoApp",
   platform: "browser",
-  outfile: "dist/bundle.js",
+  outfile: "dist/monaco.js",
   loader: {
     ".ttf": "dataurl",
     ".woff": "dataurl",

@@ -20,7 +20,7 @@ export class MonacoController {
     const bundle = Monaco.default ?? Monaco;
     this.monaco = bundle.monaco;
 
-    this.#containerId = options.containerId ?? "monaco";
+    this.#containerId = options.containerId ?? "monaco-editor";
     this.#stylesheetHref = options.stylesheetHref ?? "./monaco.css";
     this.#stylesheetId = options.stylesheetId ?? "monaco-bundle-css";
     this.#editorOptions = {
