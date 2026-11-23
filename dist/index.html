@@ -83,7 +83,8 @@
         "  return a + b;",
         "}",
         'print("2 + 3 =", add(2, 3));',
-        'game.log("hello from game");',
+        'var a = game.log("hello from game");',
+        'print(a);',
         "add(10, 20);",
       ].join("\n"),
       language: "javascript",
@@ -114,6 +115,7 @@
             "log",
             interp.createNativeFunction((msg) => {
               logs.push(`[game] ${msg}`);
+              return 42;
             })
           );
         });
